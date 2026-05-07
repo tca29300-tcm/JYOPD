@@ -112,13 +112,14 @@
   .top-btn {
     flex: 1; padding: 14px 8px;
     border: none; background: transparent;
-    color: #ffffff;
+    color: rgba(0,0,0,0.55);
     font-family: 'Noto Serif TC', serif;
     font-size: 15px; letter-spacing: 2px;
     cursor: pointer; transition: all .25s;
     border-bottom: 3px solid transparent;
   }
-  .top-btn.active { color: #ffffff; border-bottom-color: var(--gold-light); font-weight: 700; }
+  .top-btn.active { color: #000000; border-bottom-color: var(--gold-light); font-weight: 700; }
+  .top-nav { background: #d8e8dc; }
 
   .page { display: none; }
   .page.active { display: block; }
@@ -511,10 +512,9 @@
   </div>
 
   <div class="wait-section">
-    <div class="wait-label">預估等待時間</div>
+    <div class="wait-label">目前過號順序</div>
     <div>
-      <span class="wait-value" id="p-wait">—</span>
-      <span class="wait-unit">分鐘</span>
+      <span class="wait-value" id="p-wait" style="font-size:20px;">—</span>
     </div>
   </div>
 
@@ -583,6 +583,13 @@
           <button class="num-btn" onclick="changeNum('nxt',-1)">−</button>
           <input type="number" class="num-input" id="c-nxt" value="2" min="0" max="999" oninput="onNumInput()">
           <button class="num-btn" onclick="changeNum('nxt',1)">＋</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="num-input-group">
+        <span class="num-label">過號順序</span>
+        <div class="num-control">
+          <input type="text" class="num-input" id="c-order" placeholder="例：隔號看診" oninput="onNumInput()" style="font-size:15px;color:var(--stone);">
         </div>
       </div>
       <button class="apply-btn" id="ct-apply" onclick="applyNumbers()">✓ 更 新 號 碼</button>
@@ -683,8 +690,8 @@ const db  = getDatabase(app);
 
 /* ══ LOCAL STATE (mirror of Firebase) ══ */
 let remoteData = {
-  clinic1: { cur:1, nxt:2, doctor:'', paused:false, closed:false, updatedAt:'' },
-  clinic2: { cur:1, nxt:2, doctor:'', paused:false, closed:false, updatedAt:'' },
+  clinic1: { cur:1, nxt:2, doctor:'', order:'', paused:false, closed:false, updatedAt:'' },
+  clinic2: { cur:1, nxt:2, doctor:'', order:'', paused:false, closed:false, updatedAt:'' },
   announcement: ''
 };
 let activeP  = 1;
@@ -814,6 +821,7 @@ function syncCounterUI() {
   document.getElementById('c-doctor').value = cl.doctor || '';
   document.getElementById('c-cur').value    = cl.cur ?? 1;
   document.getElementById('c-nxt').value    = cl.nxt ?? 2;
+  document.getElementById('c-order').value  = cl.order || '';
   document.getElementById('pause-tog').checked  = !!cl.paused;
   document.getElementById('closed-tog').checked = !!cl.closed;
 
@@ -864,9 +872,8 @@ function renderPatient() {
     setTimeout(() => curEl.classList.remove('bump'), 400);
   }
 
-  // Wait
-  const diff = Math.max((cl.nxt??2)-(cl.cur??1), 0);
-  document.getElementById('p-wait').textContent = diff===0 ? '< 5' : '約 '+Math.max(diff*5,5);
+  // Queue order
+  document.getElementById('p-wait').textContent = cl.order || '—';
 
   // Status
   const badge    = document.getElementById('p-badge');
@@ -919,10 +926,11 @@ window.changeNum = function(field, delta) {
 };
 
 window.applyNumbers = async function() {
-  const n   = activeCT;
-  const cc  = parseInt(document.getElementById('c-cur').value);
-  const cn  = parseInt(document.getElementById('c-nxt').value);
-  const doc = document.getElementById('c-doctor').value.trim();
+  const n     = activeCT;
+  const cc    = parseInt(document.getElementById('c-cur').value);
+  const cn    = parseInt(document.getElementById('c-nxt').value);
+  const doc   = document.getElementById('c-doctor').value.trim();
+  const order = document.getElementById('c-order').value.trim();
   if (isNaN(cc)||isNaN(cn)) { showToast('請輸入有效號碼'); return; }
 
   const btn = document.getElementById('ct-apply');
@@ -930,7 +938,7 @@ window.applyNumbers = async function() {
   btn.textContent = '儲存中…';
 
   try {
-    await writeClinic(n, { cur:cc, nxt:cn, doctor:doc });
+    await writeClinic(n, { cur:cc, nxt:cn, doctor:doc, order });
     showToast(n+'診號碼已更新 ✓');
   } catch(e) {
     showToast('儲存失敗，請確認網路');
