@@ -443,6 +443,14 @@ body {
         <button class="sub-btn" onclick="undoCall(1)">↩ 上一號</button>
         <button class="sub-btn danger" onclick="togglePause(1)">⏸ 暫停 / 恢復</button>
       </div>
+      <!-- 醫師姓名 -->
+      <div class="manual-row">
+        <div class="manual-label">醫師姓名</div>
+        <div class="manual-control">
+          <input type="text" class="manual-input" id="doctor1" placeholder="例：劉學揚醫師" style="font-size:15px;color:var(--stone);">
+          <button class="manual-btn c1" onclick="setDoctor(1)">更 新</button>
+        </div>
+      </div>
       <!-- 過號順序 -->
       <div class="manual-row">
         <div class="manual-label">過號順序說明</div>
@@ -482,6 +490,14 @@ body {
       <div class="sub-controls">
         <button class="sub-btn c2" onclick="undoCall(2)">↩ 上一號</button>
         <button class="sub-btn danger" onclick="togglePause(2)">⏸ 暫停 / 恢復</button>
+      </div>
+      <!-- 醫師姓名 -->
+      <div class="manual-row">
+        <div class="manual-label">醫師姓名</div>
+        <div class="manual-control">
+          <input type="text" class="manual-input" id="doctor2" placeholder="例：魏子皓醫師" style="font-size:15px;color:var(--stone);">
+          <button class="manual-btn c2" onclick="setDoctor(2)">更 新</button>
+        </div>
       </div>
       <!-- 過號順序 -->
       <div class="manual-row">
@@ -574,6 +590,12 @@ function render() {
     // doctor
     document.getElementById('doc'+n).textContent = cl.doctor || '—';
 
+    // sync doctor input
+    const doctorEl = document.getElementById('doctor'+n);
+    if (doctorEl && document.activeElement !== doctorEl) {
+      doctorEl.value = cl.doctor || '';
+    }
+
     // order field
     const orderEl = document.getElementById('order'+n);
     if (orderEl && document.activeElement !== orderEl) {
@@ -606,6 +628,21 @@ function render() {
     }
   });
 }
+
+/* ── SET DOCTOR ── */
+window.setDoctor = async function(n) {
+  const input = document.getElementById('doctor'+n);
+  const doctor = input.value.trim();
+  try {
+    await update(ref(db, 'queue/clinic'+n), {
+      doctor,
+      updatedAt: new Date().toISOString()
+    });
+    showToast(n+'診醫師已更新 ✓');
+  } catch(err) {
+    showToast('更新失敗，請確認網路');
+  }
+};
 
 /* ── SET ORDER ── */
 window.setOrder = async function(n) {
